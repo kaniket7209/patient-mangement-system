@@ -1,9 +1,9 @@
 const express = require('express');
-const router = express.Router();
 const { registerUser, loginUser } = require('../controllers/authController');
 
-// Pass MongoDB client to controller
-module.exports = (client) => {
+const authRoutes = (client) => {
+  const router = express.Router();
+
   // Middleware to attach the database to the request object
   router.use((req, res, next) => {
     req.db = client.db('patientManagement');  // Attach the database to req.db
@@ -11,10 +11,12 @@ module.exports = (client) => {
   });
 
   // Register route
-  router.post('/register', registerUser);
+  router.post('/register', (req, res) => registerUser(req, res));
 
   // Login route
-  router.post('/login', loginUser);
+  router.post('/login', (req, res) => loginUser(req, res));
 
   return router;
 };
+
+module.exports = authRoutes;

@@ -1,19 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv');
 
-// Load environment variables
-dotenv.config();
-
-// MongoDB connection
-const client = new MongoClient(process.env.MONGO_URI);
-client.connect()
-  .then(() => console.log('MongoDB Connected Successfully!'))
-  .catch((err) => console.error('Failed to connect to the database:', err));
-
-const db = client.db('patientManagement');
-const usersCollection = db.collection('users');
+dotenv.config(); // Load environment variables
 
 // Register User Function
 const registerUser = async (req, res) => {
@@ -31,9 +20,10 @@ const registerUser = async (req, res) => {
   }
 
   try {
+    const usersCollection = req.db.collection('users');
+
     // Check if the user already exists
     const existingUser = await usersCollection.findOne({ username });
-
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -50,7 +40,6 @@ const registerUser = async (req, res) => {
 
     // Insert the new user into the database
     const result = await usersCollection.insertOne(newUser);
-
     if (result.acknowledged) {
       return res.status(200).json({ message: 'User registered successfully' });
     } else {
@@ -71,16 +60,16 @@ const loginUser = async (req, res) => {
   }
 
   try {
+    const usersCollection = req.db.collection('users');
+
     // Find the user by username
     const user = await usersCollection.findOne({ username });
-
     if (!user) {
       return res.status(400).json({ message: 'User not found' });
     }
 
     // Compare the password with the hashed password in the database
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -99,6 +88,5 @@ const loginUser = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: err });
   }
 };
-
 
 module.exports = { registerUser, loginUser };

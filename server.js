@@ -2,12 +2,9 @@
 require('dotenv').config();
 const express = require('express');
 const { MongoClient } = require('mongodb');
-const authRoutes = require('./routes/authRoutes');
-const patientRoutes = require('./routes/patientRoutes');
-
 
 const app = express();
-app.use(express.json());  // Middleware to parse JSON request bodies
+app.use(express.json()); // Middleware to parse JSON request bodies
 
 // MongoDB connection
 const client = new MongoClient(process.env.MONGO_URI);
@@ -17,7 +14,10 @@ client.connect()
   .catch((err) => console.error('Failed to connect to the database:', err));
 
 // Pass the connected client to the routes
-app.use('/api/auth', require('./routes/authRoutes')(client));
+const authRoutes = require('./routes/authRoutes')(client);
+const patientRoutes = require('./routes/patientRoutes')(client);
+
+app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 
 // Set the server to listen on a specific port

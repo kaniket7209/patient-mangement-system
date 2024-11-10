@@ -1,5 +1,4 @@
 const express = require('express');
-// const { createPatientHandler, getPatientHandler, updatePatientHandler, deletePatientHandler } = require('../controllers/patientController');
 const { ObjectId } = require('mongodb');
 const { authenticate, checkRole } = require('../middleware/authMiddleware');
 
@@ -21,35 +20,47 @@ const patientRoutes = (client) => {
 
   // Handler to get patient records with flexible search options
   const getPatientHandler = async (req, res) => {
-    const { role, _id: userId } = req.user; // Extracting role and ID from JWT token payload
-    const { id, name } = req.query; // Assuming we can filter by `id` or `name` via query parameters
-  
-    const query = {};
-    
-    if (role === 'doctor') {
-      // Only fetch records assigned to this doctor
-      query.createdBy = userId;
-    } else if (role === 'patient') {
-      // Fetch only the record of the authenticated patient
-      query._id = new ObjectId(userId);
-    }
-  
-    // Apply filtering based on optional search criteria (id or name)
-    if (id) {
-      query._id = new ObjectId(id);
-    } else if (name) {
-      query.name = { $regex: name, $options: 'i' }; // Case-insensitive search by name
-    }
-  
     try {
+      const userId = req.user._id; // Get the user ID from the decoded JWT (set by authenticate)
+      const role = req.user.role; // Get the user role
+
+      const { patientId, name } = req.query; // Search query for patientId or name
+
+      let query = {};
+
+      // If the query has a patientId, search by that
+      if (patientId) {
+        query = { _id: new ObjectId(patientId) };
+      }
+
+      // If the query has a name, search by that
+      else if (name) {
+        query = { name: new RegExp(name, 'i') }; // Case-insensitive search by name
+      } else if (role === 'admin') {
+        // Admin can view all patients
+        query = {};
+      } else if (role === 'doctor') {
+        // Doctor can only view assigned patients
+        query = { createdBy: userId };
+      } else if (role === 'patient') {
+        // Patient can only view their own record
+        query = { _id: new ObjectId(userId) };
+      } else {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
       const patients = await patientsCollection.find(query).toArray();
-      res.status(200).json(patients);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error', error });
+
+      if (patients.length === 0) {
+        return res.status(404).json({ message: 'No patients found' });
+      }
+
+      return res.status(200).json(patients);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Server error', error: err });
     }
   };
-  
 
   // Handler to update an existing patient record by ID
   const updatePatientHandler = async (req, res) => {
@@ -91,12 +102,11 @@ const patientRoutes = (client) => {
 
   // Routes with the authenticate middleware and role checks
   router.post('/add', authenticate, checkRole(['admin', 'doctor']), createPatientHandler); // Add a new patient
-  router.get('/', authenticate, checkRole(['admin', 'doctor']), getPatientHandler);         // Get patients by ID or name
-  router.put('/:id', authenticate, checkRole(['admin', 'doctor']), updatePatientHandler);    // Update a patient
-  router.delete('/:id', authenticate, checkRole(['admin']), deletePatientHandler);           // Delete a patient
+  router.get('/', authenticate, checkRole(['admin', 'doctor', 'patient']), getPatientHandler); // Get patients by ID or name
+  router.put('/:id', authenticate, checkRole(['admin', 'doctor']), updatePatientHandler); // Update a patient
+  router.delete('/:id', authenticate, checkRole(['admin']), deletePatientHandler); // Delete a patient
 
   return router;
 };
 
 module.exports = patientRoutes;
-

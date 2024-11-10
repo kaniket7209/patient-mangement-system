@@ -66,19 +66,32 @@ const patientRoutes = (client) => {
   const updatePatientHandler = async (req, res) => {
     try {
       const { id } = req.params;
+      
       const updateData = req.body;
-
+  
+      // Ensure the ID is valid
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid patient ID' });
+      }
+  
+  
+      // Perform the update
       const result = await patientsCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: updateData }
       );
-
+  
+      // Log the result of the update operation
+     
+  
       if (result.matchedCount === 0) {
         return res.status(404).json({ message: 'Patient not found' });
       }
-
+  
+      // Return success response
       res.status(200).json({ message: 'Patient updated successfully', data: result });
     } catch (error) {
+      
       res.status(500).json({ message: 'Failed to update patient', error });
     }
   };
@@ -87,7 +100,7 @@ const patientRoutes = (client) => {
   const deletePatientHandler = async (req, res) => {
     try {
       const { id } = req.params;
-
+      
       const result = await patientsCollection.deleteOne({ _id: new ObjectId(id) });
 
       if (result.deletedCount === 0) {
@@ -103,7 +116,7 @@ const patientRoutes = (client) => {
   // Routes with the authenticate middleware and role checks
   router.post('/add', authenticate, checkRole(['admin', 'doctor']), createPatientHandler); // Add a new patient
   router.get('/', authenticate, checkRole(['admin', 'doctor', 'patient']), getPatientHandler); // Get patients by ID or name
-  router.put('/:id', authenticate, checkRole(['admin', 'doctor']), updatePatientHandler); // Update a patient
+  router.put('/:id', authenticate, checkRole(['admin', 'doctor']), updatePatientHandler);  // Update a patient
   router.delete('/:id', authenticate, checkRole(['admin']), deletePatientHandler); // Delete a patient
 
   return router;

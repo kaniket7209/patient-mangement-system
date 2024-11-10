@@ -16,9 +16,11 @@ client.connect()
 // Pass the connected client to the routes
 const authRoutes = require('./routes/authRoutes')(client);
 const patientRoutes = require('./routes/patientRoutes')(client);
+const appointmentRoutes = require('./routes/appointmentRoutes')(client);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 // Set the server to listen on a specific port
 const port = process.env.PORT || 5000;

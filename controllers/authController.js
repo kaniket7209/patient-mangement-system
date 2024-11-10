@@ -98,7 +98,8 @@ const loginUser = async (req, res) => {
     }
 
     // Find the user by username in the selected collection
-    user = await collection.findOne({ username });
+    console.log({ username :username},"username")
+    user = await collection.findOne({ username :username});
 
     if (!user) {
       return res.status(400).json({ message: 'User not found' });

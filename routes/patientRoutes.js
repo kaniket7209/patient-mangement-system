@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Routes with the authenticate middleware
 router.post('/add', authenticate, checkRole(['admin', 'doctor']), createPatientHandler);  // Add a new patient
-router.get('/:id', authenticate, getPatientHandler);  // Get patient by ID
+router.get('/', authenticate, checkRole(['admin', 'doctor']), getPatientHandler);
 router.put('/:id', authenticate, updatePatientHandler);  // Update a patient
 router.delete('/:id', authenticate, deletePatientHandler);  // Delete a patient
 
